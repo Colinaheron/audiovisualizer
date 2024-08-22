@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tone.js Image Hue Visualizer</title>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; worker-src 'self' blob:">
+  <style>
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+      background-color: black;
+    }
+    canvas {
+      display: block;
+      background-color: #222;
+    }
+    button {
+      margin-bottom: 20px;
+      padding: 10px 20px;
+      font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+  <button id="start-button">Start Visualization</button>
+  <canvas id="visualizer" width="800" height="400"></canvas>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+  <script>
+    const startButton = document.getElementById('start-button');
+    const canvas = document.getElementById('visualizer');
+    const ctx = canvas.getContext('2d');
+
+    async function initAudioContext() {
+      await Tone.start();
+      console.log('AudioContext started');
+    }
+
+    startButton.addEventListener('click', async () => {
+      await initAudioContext();
+      console.log('Initializing audio visualizer');
+      initAudioVisualizer();
+    });
+
+    function initAudioVisualizer() {
+      try {
+        const player = new Tone.Player('tekken.mp3', () => {
+          console.log('Audio file loaded');
+
+          const analyzer = new Tone.Analyser('fft', 256);
+          player.connect(analyzer).toDestination();
+
+          console.log('Tone.Analyser created and connected');
+
+          player.start();
+          console.log('Audio player started');
+
+          createVisualization(analyzer);
+        }).toDestination();
+      } catch (error) {
+        console.error('Error initializing audio visualizer:', error);
+      }
+    }
+
+    function createVisualization(analyzer) {
+  const img = new Image();
+  img.src = 'xfbhhsd.PNG';  // Replace with your image path
+  img.onload = () => {
+    let hueRotation = 0;
+
+    function drawImageWithHueShift() {
+      requestAnimationFrame(drawImageWithHueShift);
+
+      // Clear the canvas
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Get the frequency data
+      const values = analyzer.getValue();
+
+      // Debug log frequency values
+      console.log('Frequency Values:', values);
+
+      // Ensure all values are numbers and handle potential NaN issues
+      const lowFrequencyValues = values.slice(0, 50).map(value => {
+        if (isNaN(value) || value === undefined) {
+          console.warn('Invalid frequency value encountered:', value);
+          return 0;
+        }
+        return Math.abs(value);
+      });
+
+      // Sum up the low frequency band (bass) values
+      const lowFrequencyIntensity = lowFrequencyValues.reduce((sum, value) => sum + value, 0);
+
+      // Debug log low frequency intensity
+      console.log('Low Frequency Intensity:', lowFrequencyIntensity);
+
+      // Ensure lowFrequencyIntensity is a valid number
+      if (!isNaN(lowFrequencyIntensity) && lowFrequencyIntensity !== undefined && lowFrequencyIntensity !== null) {
+        // Scale down the intensity value to make the hue change smoother
+        let scaledIntensity = lowFrequencyIntensity / 1000; // Adjust this divisor as needed
+
+        // Debug log scaled intensity
+        console.log('Scaled Intensity:', scaledIntensity);
+
+        // Update hueRotation and apply modulo to ensure it's within 0-360 degrees
+        let newHueRotation = hueRotation + scaledIntensity;
+        newHueRotation = newHueRotation % 360;
+        
+        // Debug log hue rotation values
+        console.log('New Hue Rotation:', newHueRotation);
+
+        // Apply hue rotation if it's a valid number
+        if (!isNaN(newHueRotation) && newHueRotation !== undefined) {
+          hueRotation = newHueRotation;
+          ctx.filter = `hue-rotate(${hueRotation}deg)`;
+        } else {
+          console.error("Invalid hueRotation value after modulo:", newHueRotation);
+        }
+      } else {
+        console.error("Invalid lowFrequencyIntensity:", lowFrequencyIntensity);
+      }
+
+      // Draw the image with the hue rotation
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    }
+
+    drawImageWithHueShift();
+  };
+}
+
+
+
+  </script>
+</body>
+</html>

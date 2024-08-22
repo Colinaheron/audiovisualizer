@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tone.js Image Hue Visualizer</title>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; worker-src 'self' blob:">
+  <style>
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+      background-color: black;
+    }
+    canvas {
+      display: block;
+      background-color: #222;
+    }
+    button {
+      margin-bottom: 10px;
+      padding: 10px 20px;
+      font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+  <button id="start-button">Start Visualization</button>
+  <button id="pause-button">Stop Visualization</button>
+  <canvas id="visualizer" width="800" height="400"></canvas>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+  <script>
+    const startButton = document.getElementById('start-button');
+    const pauseButton = document.getElementById('pause-button');
+    const canvas = document.getElementById('visualizer');
+    const ctx = canvas.getContext('2d');
+
+    let player;
+    let analyzer;
+    let animationFrameId;
+    let isPaused = false;
+
+    async function initAudioContext() {
+      await Tone.start();
+      console.log('AudioContext started');
+    }
+
+    startButton.addEventListener('click', async () => {
+      if (isPaused) {
+        resumeVisualization();
+      } else {
+        await initAudioContext();
+        console.log('Initializing audio visualizer');
+        initAudioVisualizer();
+      }
+    });
+
+    pauseButton.addEventListener('click', () => {
+      if (player) {
+        player.stop(); // Stops the player
+        cancelAnimationFrame(animationFrameId);
+        isPaused = true;
+        console.log('Visualization paused');
+      }
+    });
+
+    function initAudioVisualizer() {
+      try {
+        player = new Tone.Player('tekken.mp3', () => {
+          console.log('Audio file loaded');
+
+          analyzer = new Tone.Analyser('fft', 256);
+          player.connect(analyzer).toDestination();
+
+          console.log('Tone.Analyser created and connected');
+
+          player.start();
+          console.log('Audio player started');
+
+          createVisualization();
+        }).toDestination();
+      } catch (error) {
+        console.error('Error initializing audio visualizer:', error);
+      }
+    }
+
+    function createVisualization() {
+      const img = new Image();
+      img.src = '68747470733a2f2f692e696d6775722e636f6d2f6b4a435a7136712e706e67.png';  // Replace with your image path
+      img.onload = () => {
+        function drawImageWithGlow() {
+          if (!isPaused) {
+            animationFrameId = requestAnimationFrame(drawImageWithGlow);
+
+            // Clear the canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Get the frequency data
+            const values = analyzer.getValue();
+
+            // Ensure all values are numbers and handle potential NaN issues
+            const highFrequencyValues = values.slice(100).map(value => {
+              if (isNaN(value) || value === undefined) {
+                console.warn('Invalid frequency value encountered:', value);
+                return 0;
+              }
+              return Math.abs(value);
+            });
+
+            // Sum up the high frequency band values
+            const highFrequencyIntensity = highFrequencyValues.reduce((sum, value) => sum + value, 0);
+
+            // Scale the intensity value for more noticeable effect
+            let scaledIntensity = highFrequencyIntensity / 400; // Adjust this divisor if needed
+
+            // Ensure scaledIntensity is within a visible range
+            scaledIntensity = scaledIntensity - 28;
+
+            // Apply filter effect to create a glow effect based on high frequencies
+            ctx.filter = `blur(${scaledIntensity}px) saturate(${100- scaledIntensity}%)`; // Adjust the px value for the desired blur effect
+            
+
+            // Draw the image with the filter effect
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+            // Reset filter to prevent affecting other drawings
+            ctx.filter = 'none';
+          }
+        }
+
+        drawImageWithGlow();
+      };
+    }
+
+    function resumeVisualization() {
+      if (player) {
+        player.start(); // Resume playback
+        isPaused = false;
+        console.log('Visualization resumed');
+        createVisualization(); // Restart visualization if needed
+      }
+    }
+  </script>
+</body>
+</html>

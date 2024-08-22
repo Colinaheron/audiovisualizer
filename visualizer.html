@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Audio Visualizer with Glow Effect</title>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'nonce-abcd1234'; style-src 'self' 'nonce-abcd1234'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'">
+  <style nonce="abcd1234">
+    canvas {
+      display: block;
+      margin: 0 auto;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="visualization-canvas"></canvas>
+  <button id="start-button">Start Visualization</button>
+
+  <script nonce="abcd1234" src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+  <script nonce="abcd1234" src="script.js"></script>
+</body>
+</html>
